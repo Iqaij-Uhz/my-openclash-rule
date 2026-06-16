@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-06-17 Low-memory mode
+
+- 启用低内存稳定版配置，暂时关闭 `GEOSITE,geolocation-!cn`、`GEOSITE,CN`、`ChinaDomain.list`、`ChinaCompanyIp.list`。
+- 保留 `ProxyGFWlist`、自定义规则、`GEOIP,CN,no-resolve` 和 `FINAL` 默认直连，降低 Clash / Mihomo OOM 风险。
+- 将 `🧠 Claude固定家宽` 改为固定节点优先，并增加 `🏡 美国家宽备用`、`🐸 手动切换` 显式兜底。
+- 给香港、日本、美国、家宽、AI、美国家宽备用等筛选策略组增加 `🐸 手动切换` 兜底，降低空策略组风险。
+- 更新 `scripts/check_rules.py`，检查低内存大型 ruleset 是否关闭，以及 select 策略组是否有显式兜底。
+- 更新 `README.md`，说明低内存稳定版的规则取舍。
+
 ## 2026-06-17 Round 1
 
 - 修正 AI / Claude 规则分离，普通 AI 不再默认包含 Claude / Anthropic。

@@ -122,6 +122,15 @@ def active_rulesets(lines: list[str]) -> list[tuple[int, str]]:
     return result
 
 
+def active_proxy_groups(lines: list[str]) -> list[tuple[int, str]]:
+    result: list[tuple[int, str]] = []
+    for line_no, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if stripped.startswith("custom_proxy_group="):
+            result.append((line_no, stripped))
+    return result
+
+
 def find_ruleset_index(rulesets: list[tuple[int, str]], needle: str) -> int | None:
     for index, (_, line) in enumerate(rulesets):
         if needle in line:
@@ -199,6 +208,20 @@ def check_config() -> tuple[list[str], list[str]]:
     for line_no, line in active_rulesets(lines):
         if any(name in line for name in ("BanAD", "BanProgramAD", "BanEasyList", "BanEasyPrivacy", "AdBlock")):
             errors.append(report("ERROR", CONFIG, line_no, "ad ruleset is active; keep it commented by default"))
+
+        if any(name in line for name in ("[]GEOSITE,geolocation-!cn", "[]GEOSITE,CN", "ChinaDomain.list", "ChinaCompanyIp.list")):
+            errors.append(report("ERROR", CONFIG, line_no, "large ruleset is active; keep it commented in low-memory mode"))
+
+    explicit_fallbacks = ("[]🐸 手动切换", "[]DIRECT", "[]🚀 节点选择", "[]🏡 美国家宽备用")
+    for line_no, line in active_proxy_groups(lines):
+        parts = line.split("`")
+        if len(parts) < 3 or parts[1] != "select":
+            continue
+        selector = parts[2]
+        has_explicit_fallback = any(fallback in line for fallback in explicit_fallbacks)
+        is_all_nodes_group = selector == ".*"
+        if not has_explicit_fallback and not is_all_nodes_group:
+            errors.append(report("ERROR", CONFIG, line_no, "select proxy group should include an explicit fallback"))
 
     return errors, warnings
 
