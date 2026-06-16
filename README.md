@@ -17,10 +17,10 @@
 将仓库推送到 GitHub 后，在 OpenClash 订阅转换远程配置中使用：
 
 ```text
-https://raw.githubusercontent.com/USERNAME/my-openclash-rule/main/openclash_personal.ini
+https://raw.githubusercontent.com/Iqaij-Uhz/my-openclash-rule/main/openclash_personal.ini
 ```
 
-初始化阶段配置中的 `USERNAME` 是占位符。确认仓库路径后再替换为自己的 GitHub 用户名。
+如仓库名或分支名发生变化，需要同步更新 `openclash_personal.ini` 中引用的 raw 地址。
 
 ## 维护规则
 
