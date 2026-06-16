@@ -1,9 +1,11 @@
 # Claude / Anthropic fixed residential route
 DOMAIN-SUFFIX,claude.ai
 DOMAIN-SUFFIX,anthropic.com
-DOMAIN-SUFFIX,api.anthropic.com
-DOMAIN-SUFFIX,console.anthropic.com
-DOMAIN-SUFFIX,statsig.anthropic.com
-DOMAIN-SUFFIX,sentry.io
+DOMAIN,api.anthropic.com
+DOMAIN,console.anthropic.com
+DOMAIN,statsig.anthropic.com
 DOMAIN-KEYWORD,anthropic
 DOMAIN-KEYWORD,claude
+
+# sentry.io 是通用错误监控服务；只有确认 Claude Code 运行确实需要时再取消注释。
+#DOMAIN-SUFFIX,sentry.io

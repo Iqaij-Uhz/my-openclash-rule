@@ -9,19 +9,10 @@ DOMAIN-KEYWORD,cursor
 # 域名后缀匹配
 DOMAIN-SUFFIX,perplexity.ai
 DOMAIN-SUFFIX,chatgpt.com
-DOMAIN-SUFFIX,auth0.com
-DOMAIN-SUFFIX,client-api.arkoselabs.com
-DOMAIN-SUFFIX,events.statsigapi.net
-DOMAIN-SUFFIX,featuregates.org
-DOMAIN-SUFFIX,identrust.com
-DOMAIN-SUFFIX,intercom.io
-DOMAIN-SUFFIX,intercomcdn.com
 DOMAIN-SUFFIX,oaistatic.com
 DOMAIN-SUFFIX,oaiusercontent.com
 DOMAIN-SUFFIX,openai.com
 DOMAIN-SUFFIX,openaiapi-site.azureedge.net
-DOMAIN-SUFFIX,sentry.io
-DOMAIN-SUFFIX,stripe.com
 DOMAIN-SUFFIX,api.openai.com
 DOMAIN-SUFFIX,platform.openai.com
 DOMAIN-SUFFIX,chat.openai.com
@@ -39,3 +30,13 @@ DOMAIN-SUFFIX,poecdn.net
 DOMAIN-SUFFIX,phind.com
 DOMAIN-SUFFIX,cohere.ai
 DOMAIN-SUFFIX,mistral.ai
+
+# 通用第三方服务，确认具体 AI 服务需要后再启用，避免误分流。
+#DOMAIN-SUFFIX,auth0.com
+#DOMAIN-SUFFIX,client-api.arkoselabs.com
+#DOMAIN-SUFFIX,events.statsigapi.net
+#DOMAIN-SUFFIX,featuregates.org
+#DOMAIN-SUFFIX,identrust.com
+#DOMAIN-SUFFIX,intercom.io
+#DOMAIN-SUFFIX,intercomcdn.com
+#DOMAIN-SUFFIX,sentry.io

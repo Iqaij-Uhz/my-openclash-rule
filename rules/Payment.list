@@ -1,0 +1,8 @@
+# Payment services
+# Used for payment/account stability. Choose an outlet consistent with the real billing address,
+# payment method, and account region. Do not use this to evade tax or misrepresent location.
+
+DOMAIN-SUFFIX,stripe.com
+DOMAIN-SUFFIX,stripe.network
+DOMAIN,js.stripe.com
+DOMAIN,checkout.stripe.com

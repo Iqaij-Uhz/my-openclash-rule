@@ -1,0 +1,2 @@
+# iPhone 192.168.5.50: route all non-LAN traffic to Claude fixed residential node
+SRC-IP-CIDR,192.168.5.50/32

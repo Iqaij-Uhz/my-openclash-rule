@@ -16,18 +16,13 @@ VALID_RULE_TYPES = {
     "DOMAIN",
     "DOMAIN-SUFFIX",
     "DOMAIN-KEYWORD",
-    "DOMAIN-REGEX",
     "IP-CIDR",
     "IP-CIDR6",
-    "IP-ASN",
     "GEOIP",
     "GEOSITE",
-    "PROCESS-NAME",
-    "PROCESS-PATH",
     "SRC-IP-CIDR",
     "DST-PORT",
-    "SRC-PORT",
-    "URL-REGEX",
+    "PROCESS-NAME",
     "RULE-SET",
     "MATCH",
     "FINAL",
@@ -107,6 +102,17 @@ def check_rule_file(path: Path) -> tuple[list[str], list[str]]:
     return errors, warnings
 
 
+def active_rule_lines(path: Path) -> list[tuple[int, str]]:
+    if not path.exists():
+        return []
+    result: list[tuple[int, str]] = []
+    for line_no, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        line = raw_line.strip()
+        if line and not line.startswith("#") and not line.startswith(";"):
+            result.append((line_no, line))
+    return result
+
+
 def active_rulesets(lines: list[str]) -> list[tuple[int, str]]:
     result: list[tuple[int, str]] = []
     for line_no, line in enumerate(lines, start=1):
@@ -121,6 +127,25 @@ def find_ruleset_index(rulesets: list[tuple[int, str]], needle: str) -> int | No
         if needle in line:
             return index
     return None
+
+
+def require_order(
+    errors: list[str],
+    rulesets: list[tuple[int, str]],
+    before: str,
+    after: str,
+    message: str,
+) -> None:
+    before_idx = find_ruleset_index(rulesets, before)
+    after_idx = find_ruleset_index(rulesets, after)
+    if before_idx is None:
+        errors.append(report("ERROR", CONFIG, None, f"{before} is not referenced"))
+        return
+    if after_idx is None:
+        errors.append(report("ERROR", CONFIG, None, f"{after} is not referenced"))
+        return
+    if before_idx > after_idx:
+        errors.append(report("ERROR", CONFIG, None, message))
 
 
 def check_config() -> tuple[list[str], list[str]]:
@@ -142,7 +167,7 @@ def check_config() -> tuple[list[str], list[str]]:
         warnings.append(report("WARN", CONFIG, None, "USERNAME placeholder still exists"))
 
     for line_no, line in active_rulesets(lines):
-        if "raw.githubusercontent.com/USERNAME/my-openclash-rule/main/rules/" not in line:
+        if "/my-openclash-rule/main/rules/" not in line:
             continue
         local_name = line.rsplit("/rules/", 1)[1].split(",", 1)[0].strip()
         local_path = RULES_DIR / local_name
@@ -152,6 +177,7 @@ def check_config() -> tuple[list[str], list[str]]:
     rulesets = active_rulesets(lines)
     claude_idx = find_ruleset_index(rulesets, "rules/Claude.list")
     ai_idx = find_ruleset_index(rulesets, "rules/AI.list")
+    phone_idx = find_ruleset_index(rulesets, "rules/PhoneClaude.list")
 
     if claude_idx is None:
         errors.append(report("ERROR", CONFIG, None, "Claude.list is not referenced"))
@@ -166,9 +192,55 @@ def check_config() -> tuple[list[str], list[str]]:
             if idx is not None and ai_idx > idx:
                 errors.append(report("ERROR", CONFIG, None, f"AI.list must be referenced before {label}"))
 
+    require_order(errors, rulesets, "LocalAreaNetwork.list", "rules/PhoneClaude.list", "LocalAreaNetwork.list must be before PhoneClaude.list")
+    for later in ("rules/Direct.list", "rules/ProxyLite.list", "rules/Claude.list", "rules/AI.list", "rules/Payment.list", "FINAL"):
+        require_order(errors, rulesets, "rules/PhoneClaude.list", later, f"PhoneClaude.list must be before {later}")
+
     for line_no, line in active_rulesets(lines):
         if any(name in line for name in ("BanAD", "BanProgramAD", "BanEasyList", "BanEasyPrivacy", "AdBlock")):
             errors.append(report("ERROR", CONFIG, line_no, "ad ruleset is active; keep it commented by default"))
+
+    return errors, warnings
+
+
+def check_round1_files() -> tuple[list[str], list[str]]:
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    phone = RULES_DIR / "PhoneClaude.list"
+    payment = RULES_DIR / "Payment.list"
+    ai = RULES_DIR / "AI.list"
+    claude = RULES_DIR / "Claude.list"
+
+    for path in (phone, payment):
+        if not path.exists():
+            errors.append(report("ERROR", path, None, "required rule file does not exist"))
+
+    phone_rules = [line for _, line in active_rule_lines(phone)]
+    if phone.exists() and "SRC-IP-CIDR,192.168.5.50/32" not in phone_rules:
+        errors.append(report("ERROR", phone, None, "missing SRC-IP-CIDR,192.168.5.50/32"))
+
+    for line_no, line in active_rule_lines(ai):
+        if re.search(r"claude|anthropic", line, re.IGNORECASE):
+            errors.append(report("ERROR", ai, line_no, "Claude/Anthropic rule must not be in AI.list"))
+        if re.search(r"stripe", line, re.IGNORECASE):
+            errors.append(report("ERROR", ai, line_no, "payment rule must not be in AI.list"))
+
+    for line_no, line in active_rule_lines(claude):
+        if re.search(r"sentry\.io", line, re.IGNORECASE):
+            errors.append(report("ERROR", claude, line_no, "sentry.io must remain commented unless explicitly needed"))
+        if re.search(r"stripe", line, re.IGNORECASE):
+            errors.append(report("ERROR", claude, line_no, "payment rule must not be in Claude.list"))
+
+    payment_rules = [line for _, line in active_rule_lines(payment)]
+    for expected in (
+        "DOMAIN-SUFFIX,stripe.com",
+        "DOMAIN-SUFFIX,stripe.network",
+        "DOMAIN,js.stripe.com",
+        "DOMAIN,checkout.stripe.com",
+    ):
+        if payment.exists() and expected not in payment_rules:
+            errors.append(report("ERROR", payment, None, f"missing {expected}"))
 
     return errors, warnings
 
@@ -185,6 +257,10 @@ def main() -> int:
     config_errors, config_warnings = check_config()
     errors.extend(config_errors)
     warnings.extend(config_warnings)
+
+    round1_errors, round1_warnings = check_round1_files()
+    errors.extend(round1_errors)
+    warnings.extend(round1_warnings)
 
     for warning in warnings:
         print(warning)
